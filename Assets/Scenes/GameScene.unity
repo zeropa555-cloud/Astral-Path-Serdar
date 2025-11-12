@@ -3645,8 +3645,6 @@ GameObject:
   - component: {fileID: 5866666020506773138}
   - component: {fileID: 5866666020506773139}
   - component: {fileID: 5866666020506773140}
-  - component: {fileID: 5866666020506773142}
-  - component: {fileID: 5866666020506773141}
   - component: {fileID: 5866666020506773144}
   - component: {fileID: 5866666020506773143}
   m_Layer: 0
@@ -5788,50 +5786,6 @@ CapsuleCollider:
   m_Height: 5.031881
   m_Direction: 1
   m_Center: {x: 0.06215811, y: 2.0159404, z: -0.08187436}
---- !u!114 &5866666020506773141
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 919132148414588498}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8112fc1ad3958084097fa612eaddea53, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SimpleMove
-  walkSpeed: 3.5
-  runSpeed: 8
-  rotationSpeed: 500
-  jumpForce: 7
-  gravity: 20
-  cameraTransform: {fileID: 0}
-  jumpStateName: jumping
---- !u!143 &5866666020506773142
-CharacterController:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 919132148414588498}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 3
-  m_Height: 3.36
-  m_Radius: 0.5
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 1.54, z: 0}
 --- !u!114 &5866666020506773143
 MonoBehaviour:
   m_ObjectHideFlags: 0
