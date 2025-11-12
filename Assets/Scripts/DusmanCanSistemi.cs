@@ -4,11 +4,11 @@ using System.Collections; // Coroutine (zamanlayici) icin SART!
 
 public class DusmanCanSistemi : MonoBehaviour
 {
-    [Header("Can Ayarlar�")]
+    [Header("Can Ayarları")]
     public float maxCan = 50f;
     private float mevcutCan;
 
-    [Header("UI Referanslar�")]
+    [Header("UI Referansları")]
     [Tooltip("DusmanCanBariCanvas objesini buraya surukle")]
     public GameObject canBariParent; // Butun Canvas objesi (gosterip gizlemek icin)
 
@@ -20,6 +20,10 @@ public class DusmanCanSistemi : MonoBehaviour
 
     private Coroutine hideTimer; // Zamanlayiciyi tutmak icin
 
+    // ----- 1. YENİ EKLENEN DEĞİŞKEN -----
+    // Diğer DusmanAI script'ine komut vermek için onu burada tutacağız
+    private DusmanAI dusmanAIScripti;
+
     void Start()
     {
         mevcutCan = maxCan;
@@ -27,6 +31,14 @@ public class DusmanCanSistemi : MonoBehaviour
         // Slider'i guncelle ama baslangicta gizli tut
         if (canBariSlider != null) canBariSlider.value = 1f;
         if (canBariParent != null) canBariParent.SetActive(false);
+
+        // ----- 2. YENİ EKLENEN SATIR -----
+        // Başlangıçta, bu objenin üzerindeki DusmanAI script'ini bul ve sakla
+        dusmanAIScripti = GetComponent<DusmanAI>();
+        if (dusmanAIScripti == null)
+        {
+            Debug.LogError(gameObject.name + " üzerinde DusmanAI script'i bulunamadı! Ölüm animasyonu çalışmayacak.");
+        }
     }
 
     // DISARIDAN CAGRILACAK ANA FONKSIYON
@@ -82,17 +94,21 @@ public class DusmanCanSistemi : MonoBehaviour
 
     void OlumFonksiyonu()
     {
-        Debug.Log(gameObject.name + " �ld�.");
+        Debug.Log(gameObject.name + " öldü.");
 
         // Olunce can barini hemen gizle ve zamanlayiciyi durdur
         if (hideTimer != null) StopCoroutine(hideTimer);
         if (canBariParent != null) canBariParent.SetActive(false);
 
-        // Burada dusmanin olme animasyonunu vs. calistirabilirsin
+        // ----- 3. GÜNCELLENEN KISIM -----
+        // "Burada dusmanin olme animasyonunu..." yorumu yerine:
+        // Diğer script'i bulup "öl" komutu ver
+        if (dusmanAIScripti != null)
+        {
+            dusmanAIScripti.OlumAnimasyonunuBaslat();
+        }
 
         // Dusman objesini 2 saniye sonra yok et (animasyonun bitmesi icin)
-        Destroy(gameObject, 2f);
+        Destroy(gameObject, 5f);
     }
-
-    // OnMouseDown() testi buradan silindi.
 }

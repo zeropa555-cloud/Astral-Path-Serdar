@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Collections.Generic; // Sözlük (Dictionary) kullanmak için bu SART!
+using System.Collections.Generic; // Sï¿½zlï¿½k (Dictionary) kullanmak iï¿½in bu SART!
 
 public class LocalizationManager : MonoBehaviour
 {
@@ -46,15 +46,15 @@ public class LocalizationManager : MonoBehaviour
 
         // Buraya oyunundaki tum metinleri ekleyeceksin
         // ORNEK:
-        AddText("key_basla_buton", "BAÞLA", "START");
+        AddText("key_basla_buton", "BAï¿½LA", "START");
         AddText("key_ayarlar_buton", "AYARLAR", "SETTINGS");
-        AddText("key_cikis_buton", "ÇIKIÞ", "EXIT");
-        AddText("key_geri_buton", "GERÝ", "BACK");
+        AddText("key_cikis_buton", "ï¿½IKIï¿½", "EXIT");
+        AddText("key_geri_buton", "GERï¿½", "BACK");
         AddText("key_ses_ayarlari", "SES AYARLARI", "SOUND SETTINGS");
-        AddText("key_dil_secimi", "DÝL SEÇÝMÝ", "LANGUAGE");
+        AddText("key_dil_secimi", "Dï¿½L SEï¿½ï¿½Mï¿½", "LANGUAGE");
         AddText("key_ana_ses", "ANA SES", "MASTER");
-        AddText("key_muzik", "MÜZÝK", "MUSIC");
-        AddText("key_efektler", "SES EFEKTLERÝ", "SFX");
+        AddText("key_muzik", "Mï¿½Zï¿½K", "MUSIC");
+        AddText("key_efektler", "SES EFEKTLERï¿½", "SFX");
         AddText("key_ayarlar_isim", "Ayarlar", "Settings");
 
         // Buraya istedigin kadar ekleyebilirsin
