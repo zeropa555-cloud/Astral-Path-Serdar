@@ -11,18 +11,17 @@ public class SimpleMove : MonoBehaviour
     [Header("Zıplama")]
     public float jumpForce = 7f;
     public float gravity   = 20f;
-    [Tooltip("Jump klibinde takeoff anına denk gelen normalizedTime (0-1). Örn: 0.15")]
-    public float takeoffNormalizedTime = 0.5f;
 
     [Header("Kamera")]
     public Transform cameraTransform;
 
+    [Header("Animator Ayarları")]
+    [Tooltip("Animator'daki Jump state adın (state adı veya klip adı).")]
+    public string jumpStateName = "jumping";
+
     CharacterController controller;
     Animator animator;
-    Vector3 horizontalVel;
     float verticalVel;
-    bool jumpQueued;      // animasyon state'ine girildi, takeoff bekleniyor mu?
-    bool hasTakenOff;     // takeoff uygulandı mı?
 
     static readonly int HashSpeed = Animator.StringToHash("Speed");
     static readonly int HashJump  = Animator.StringToHash("Jump");
@@ -31,15 +30,26 @@ public class SimpleMove : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         animator   = GetComponentInChildren<Animator>();
-        if (cameraTransform == null) cameraTransform = Camera.main.transform;
-        if (animator != null) animator.applyRootMotion = false;
+
+        if (cameraTransform == null) cameraTransform = Camera.main ? Camera.main.transform : null;
+        if (animator) animator.applyRootMotion = false;
+
+        verticalVel = 0f;
+
+        if (animator)
+        {
+            animator.Rebind();
+            animator.Update(0f);
+            animator.ResetTrigger(HashJump);
+        }
     }
 
     void Update()
     {
-        var kb = Keyboard.current; if (kb == null) return;
+        var kb = Keyboard.current;
+        if (kb == null || controller == null || cameraTransform == null) return;
 
-        // --- Input ---
+        // --- 1) Girdi ---
         float h = (kb.aKey.isPressed || kb.leftArrowKey.isPressed)  ? -1f :
                   (kb.dKey.isPressed || kb.rightArrowKey.isPressed) ?  1f : 0f;
         float v = (kb.sKey.isPressed || kb.downArrowKey.isPressed)  ? -1f :
@@ -49,60 +59,69 @@ public class SimpleMove : MonoBehaviour
         bool isMoving  = input.sqrMagnitude > 0.0001f;
         bool isRunning = isMoving && kb.leftShiftKey.isPressed;
 
-        // --- Kameraya göre yön ---
-        Vector3 camF = cameraTransform.forward; camF.y = 0; camF.Normalize();
-        Vector3 camR = cameraTransform.right;   camR.y = 0; camR.Normalize();
+        // --- 2) Kamera yönü ---
+        Vector3 camF = cameraTransform.forward; camF.y = 0f; camF.Normalize();
+        Vector3 camR = cameraTransform.right;   camR.y = 0f; camR.Normalize();
         Vector3 moveDir = (camF * input.z + camR * input.x).normalized;
 
+        // --- 3) Hız belirle ---
         float worldSpeed = isRunning ? runSpeed : walkSpeed;
-        horizontalVel = moveDir * worldSpeed;
+        Vector3 horizontal = moveDir * worldSpeed;
 
-        // --- Space: Jump tetikle (yalnızca yerdeyken) ---
-        if (controller.isGrounded && kb.spaceKey.wasPressedThisFrame && !jumpQueued)
-        {
-            animator.SetTrigger(HashJump);  // animasyonu başlat
-            jumpQueued  = true;             // state'e girince takeoff bekle
-            hasTakenOff = false;
-        }
+        // Havada yürümeyi kapat
+        if (!controller.isGrounded) horizontal = Vector3.zero;
 
-        // --- Animasyonla senkron takeoff ---
-        if (jumpQueued)
+        // --- 4) Zıplama & Yerçekimi ---
+        if (controller.isGrounded)
         {
-            var st = animator.GetCurrentAnimatorStateInfo(0);
-            // "Jump" state adına kendi klibinin adını yazabilirsin (Contains kullanıyoruz esnek olsun diye)
-            if (st.IsTag("Jump") || st.IsName("Jump") || st.shortNameHash != 0)
+            if (verticalVel <= 0f) verticalVel = -1f;
+
+            if (kb.spaceKey.wasPressedThisFrame)
             {
-                if (!hasTakenOff && st.normalizedTime >= takeoffNormalizedTime)
+                // a) Animasyonu AYNI FRAME başlat (gecikmeyi kes)
+                if (animator)
                 {
-                    verticalVel = jumpForce; // tam bu anda fiziksel zıplamayı uygula
-                    hasTakenOff = true;
-                    jumpQueued  = false;
+                    animator.ResetTrigger(HashJump);
+                    // İki seçenekten biri (ikisi de 0 sürede):
+                    // animator.CrossFade(jumpStateName, 0f, 0, 0f);
+                    animator.Play(jumpStateName, 0, 0f);
+                    animator.Update(0f);              // hemen evaluate et
+                    animator.SetTrigger(HashJump);    // (opsiyonel) trigger kalsın
+                    animator.SetFloat(HashSpeed, 0f); // bu karede Idle hissi
                 }
+
+                // b) Fiziksel zıplamayı AYNI FRAME uygula
+                verticalVel = jumpForce;
+
+                // c) Yatay hızı ve döndürmeyi bu karede sıfırla (tam senkron görünüm)
+                horizontal = Vector3.zero;
+                isMoving = false;
             }
         }
-
-        // --- Yerçekimi / yere basma ---
-        if (controller.isGrounded && verticalVel <= 0f)
-            verticalVel = -1f; // yere sabitle
         else
+        {
             verticalVel -= gravity * Time.deltaTime;
+        }
 
-        // --- Hareket uygula ---
-        Vector3 final = horizontalVel; final.y = verticalVel;
+        // --- 5) Hareket uygula ---
+        Vector3 final = new Vector3(horizontal.x, verticalVel, horizontal.z);
         controller.Move(final * Time.deltaTime);
 
-        // --- Yönünü çevir ---
-        if (isMoving)
+        // --- 6) Yönünü çevir (yalnızca yerdeyken) ---
+        if (isMoving && controller.isGrounded)
         {
             Quaternion target = Quaternion.LookRotation(moveDir, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, target, rotationSpeed * Time.deltaTime);
         }
 
-        // --- Animator Speed (Idle/Walk/Run için) ---
-        float targetAnimSpeed = 0f;
-        if (isMoving) targetAnimSpeed = isRunning ? 1f : 0.5f;
-        float current = animator.GetFloat(HashSpeed);
-        float smooth  = Mathf.Lerp(current, targetAnimSpeed, 10f * Time.deltaTime);
-        animator.SetFloat(HashSpeed, smooth);
+        // --- 7) Animator parametreleri ---
+        if (animator)
+        {
+            // Idle=0, Walk=0.5, Run=1.0
+            float targetSpeed = (controller.isGrounded && isMoving) ? (isRunning ? 1f : 0.5f) : 0f;
+            float current     = animator.GetFloat(HashSpeed);
+            float smoothed    = Mathf.Lerp(current, targetSpeed, 10f * Time.deltaTime);
+            animator.SetFloat(HashSpeed, smoothed);
+        }
     }
 }
