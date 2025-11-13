@@ -1,114 +1,54 @@
 using UnityEngine;
-using UnityEngine.UI; // Slider icin SART!
-using System.Collections; // Coroutine (zamanlayici) icin SART!
+using UnityEngine.UI;
+using System.Collections;
 
 public class DusmanCanSistemi : MonoBehaviour
 {
-    [Header("Can Ayarları")]
     public float maxCan = 50f;
     private float mevcutCan;
-
-    [Header("UI Referansları")]
-    [Tooltip("DusmanCanBariCanvas objesini buraya surukle")]
-    public GameObject canBariParent; // Butun Canvas objesi (gosterip gizlemek icin)
-
-    [Tooltip("DustanSlider objesini buraya surukle")]
-    public Slider canBariSlider;
-
-    [Tooltip("Can bari hasar aldiktan kac saniye sonra gizlensin?")]
-    public float gorunurlukSuresi = 4f;
-
-    private Coroutine hideTimer; // Zamanlayiciyi tutmak icin
-
-    // ----- 1. YENİ EKLENEN DEĞİŞKEN -----
-    // Diğer DusmanAI script'ine komut vermek için onu burada tutacağız
-    private DusmanAI dusmanAIScripti;
+    public Slider canBariSlider; // Varsa slider'ı bağla
 
     void Start()
     {
         mevcutCan = maxCan;
-
-        // Slider'i guncelle ama baslangicta gizli tut
-        if (canBariSlider != null) canBariSlider.value = 1f;
-        if (canBariParent != null) canBariParent.SetActive(false);
-
-        // ----- 2. YENİ EKLENEN SATIR -----
-        // Başlangıçta, bu objenin üzerindeki DusmanAI script'ini bul ve sakla
-        dusmanAIScripti = GetComponent<DusmanAI>();
-        if (dusmanAIScripti == null)
-        {
-            Debug.LogError(gameObject.name + " üzerinde DusmanAI script'i bulunamadı! Ölüm animasyonu çalışmayacak.");
-        }
     }
 
-    // DISARIDAN CAGRILACAK ANA FONKSIYON
+    // Normal Hasar Alma
     public void HasarAl(float miktar)
     {
-        if (mevcutCan <= 0) return; // Zaten olu
-
         mevcutCan -= miktar;
-        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan);
-
-        // UI'i guncelle
-        if (canBariSlider != null)
-        {
-            canBariSlider.value = mevcutCan / maxCan;
-        }
+        if (canBariSlider != null) canBariSlider.value = mevcutCan / maxCan;
 
         if (mevcutCan <= 0)
         {
-            OlumFonksiyonu();
-        }
-        else
-        {
-            // Hasar aldi ama olmedi: Can barini goster ve zamanlayiciyi baslat
-            GosterCanBari();
+            StopAllCoroutines(); // Yanmayı durdur
+            Destroy(gameObject); // Düşmanı yok et
         }
     }
 
-    void GosterCanBari()
+    // --- ATEŞ TOPU İÇİN GEREKLİ OLAN KISIM BURASI ---
+
+    // Dışarıdan (Top'tan) çağrılan fonksiyon
+    public void YanmaBaslat(float saniyeBasiHasar, int kacSaniyeSurucek)
     {
-        if (canBariParent == null) return;
-
-        // Can barini gorunur yap
-        canBariParent.SetActive(true);
-
-        // Eger daha onceden calisan bir gizleme zamanlayicisi varsa, onu durdur
-        if (hideTimer != null)
-        {
-            StopCoroutine(hideTimer);
-        }
-
-        // Can barini X saniye sonra gizlemek icin yeni bir zamanlayici baslat
-        hideTimer = StartCoroutine(CanBariniGizleTimer());
+        // Üst üste yanmasın diye önce eskisi varsa durduruyoruz
+        StopCoroutine("YanmaDongusu");
+        // Yeni yanmayı başlatıyoruz
+        StartCoroutine(YanmaDongusu(saniyeBasiHasar, kacSaniyeSurucek));
     }
 
-    IEnumerator CanBariniGizleTimer()
+    // Saniye saniye can azaltan zamanlayıcı
+    IEnumerator YanmaDongusu(float hasar, int sure)
     {
-        // Belirlenen sure kadar bekle
-        yield return new WaitForSeconds(gorunurlukSuresi);
-
-        // Sure dolunca can barini gizle
-        canBariParent.SetActive(false);
-    }
-
-    void OlumFonksiyonu()
-    {
-        Debug.Log(gameObject.name + " öldü.");
-
-        // Olunce can barini hemen gizle ve zamanlayiciyi durdur
-        if (hideTimer != null) StopCoroutine(hideTimer);
-        if (canBariParent != null) canBariParent.SetActive(false);
-
-        // ----- 3. GÜNCELLENEN KISIM -----
-        // "Burada dusmanin olme animasyonunu..." yorumu yerine:
-        // Diğer script'i bulup "öl" komutu ver
-        if (dusmanAIScripti != null)
+        for (int i = 0; i < sure; i++)
         {
-            dusmanAIScripti.OlumAnimasyonunuBaslat();
-        }
+            yield return new WaitForSeconds(1f); // 1 saniye bekle
 
-        // Dusman objesini 2 saniye sonra yok et (animasyonun bitmesi icin)
-        Destroy(gameObject, 5f);
+            if (mevcutCan > 0)
+            {
+                HasarAl(hasar); // Can azalt
+                Debug.Log(gameObject.name + " yanıyor! Canı: " + mevcutCan);
+            }
+        }
     }
 }

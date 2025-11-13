@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 4775770874217729506}
   - component: {fileID: 6700125014879269244}
   m_Layer: 0
-  m_Name: BuyuTopu
+  m_Name: AtesTopu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -155,6 +155,3 @@ MonoBehaviour:
   hiz: 25
   hasarMiktari: 10
   yasamSuresi: 4
-  yakiciOlsunMu: 0
-  yanmaHasari: 5
-  kacSaniyeYansin: 3
