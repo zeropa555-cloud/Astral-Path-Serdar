@@ -1,8 +1,11 @@
 using UnityEngine;
-using UnityEngine.InputSystem; // 1. BU SATIRI EKLE (Yeni sistemi dahil et)
+using UnityEngine.InputSystem;
 
 public class SandikEtkilesim : MonoBehaviour
 {
+    [Header("Puzzle Ayarları")]
+    public GameObject puzzlePaneli; // Unity'den Puzzle Panelini buraya sürükle
+
     private Animator animator;
     private bool oyuncuYakininda = false;
     private bool acildi = false;
@@ -10,60 +13,62 @@ public class SandikEtkilesim : MonoBehaviour
     void Start()
     {
         animator = GetComponent<Animator>();
+
+        // Oyun başlarken puzzle paneli açıksa kapatalım
+        if (puzzlePaneli != null)
+        {
+            puzzlePaneli.SetActive(false);
+        }
     }
 
     void Update()
     {
-        // --- YENİ GİRDİ SİSTEMİNE GÖRE GÜNCELLENEN KISIM ---
-
-        // 1. Mevcut klavyeyi kontrol et
         var keyboard = Keyboard.current;
-        if (keyboard == null)
-        {
-            // Klavye bağlı değilse veya sistem hazır değilse bir şey yapma
-            return;
-        }
+        if (keyboard == null) return;
 
-        // 2. 'E' tuşuna bu frame (kare) basıldı mı?
-        // Input.GetKeyDown(KeyCode.E) yerine bunu kullanıyoruz:
         bool eTusunaBasildi = keyboard.eKey.wasPressedThisFrame;
 
-        // --- GÜNCELLENEN KISMIN SONU ---
-
-
-        // 1. Koşul: Oyuncu yakınımızda mı?
-        // 2. Koşul: Oyuncu 'E' tuşuna bastı mı?
-        // 3. Koşul: Sandık daha önce açılmadı mı?
+        // Eğer oyuncu yakındaysa, E'ye bastıysa ve sandık henüz açılmadıysa
         if (oyuncuYakininda && eTusunaBasildi && !acildi)
         {
-            // Eğer tümü doğruysa:
-            // 1. Sandık artık "açıldı" olarak işaretle
-            acildi = true;
-            
-            // 2. Animator'e "OpenChest" adındaki tetikleyiciyi gönder
-            animator.SetTrigger("OpenChest");
+            // DİKKAT: Sandığı açma! Sadece Puzzle Panelini aç.
+            if (puzzlePaneli != null)
+            {
+                puzzlePaneli.SetActive(true); // Paneli görünür yap
+            }
+            else
+            {
+                Debug.LogError("Kanka 'Puzzle Paneli' kutucuğu boş! Inspector'dan paneli sürükle.");
+            }
         }
     }
 
-    // Bu fonksiyon, Sandığın "Is Trigger" işaretli Collider'ına BİR ŞEY GİRDİĞİNDE çalışır
+    // --- BU FONKSİYONU PUZZLE SCRİPTİ ÇAĞIRACAK ---
+    public void SandigiAc()
+    {
+        if (!acildi)
+        {
+            acildi = true;
+            animator.SetTrigger("OpenChest"); // Animasyonu şimdi oynat
+        }
+    }
+    // ----------------------------------------------
+
     private void OnTriggerEnter(Collider other)
     {
-        // Giren objenin etiketi (tag) "Player" mı?
         if (other.CompareTag("Player"))
         {
             oyuncuYakininda = true;
-            Debug.Log("Oyuncu sandık alanına girdi.");
         }
     }
 
-    // Bu fonksiyon, o BİR ŞEY alandan ÇIKTIĞINDA çalışır
     private void OnTriggerExit(Collider other)
     {
-        // Çıkan obje "Player" mı?
         if (other.CompareTag("Player"))
         {
             oyuncuYakininda = false;
-            Debug.Log("Oyuncu sandık alanından çıktı.");
+            // Oyuncu uzaklaşırsa puzzle paneli kapansın (isteğe bağlı)
+            if (puzzlePaneli != null) puzzlePaneli.SetActive(false);
         }
     }
 }
