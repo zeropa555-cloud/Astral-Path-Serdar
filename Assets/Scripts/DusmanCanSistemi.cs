@@ -4,6 +4,11 @@ using System.Collections; // Coroutine (zamanlayici) icin SART!
 
 public class DusmanCanSistemi : MonoBehaviour
 {
+    // --- YENİ EKLENDİ (ROUND SİSTEMİ İÇİN) ---
+    // Bu sinyal, bir düşman öldüğünde EnemySpawner'a haber verecek
+    public static event System.Action OnDusmanOldu;
+    // ------------------------------------------
+
     [Header("Can Ayarları")]
     public float maxCan = 50f;
     private float mevcutCan;
@@ -97,11 +102,16 @@ public class DusmanCanSistemi : MonoBehaviour
             dusmanAIScripti.OlumAnimasyonunuBaslat();
         }
 
+        // --- YENİ EKLENDİ (ROUND SİSTEMİ İÇİN) ---
+        // "Ben öldüm!" diye spawner'a haber yolla
+        OnDusmanOldu?.Invoke();
+        // ------------------------------------------
+
         // Dusman objesini 5 saniye sonra yok et (animasyonun bitmesi icin)
         Destroy(gameObject, 5f);
     }
 
-    // --- ATEŞ TOPU İÇİN İKİNCİ KODDAN GELEN KISIM ---
+    // --- ATEŞ TOPU İÇİN OLAN KISIM (DOKUNULMADI) ---
 
     // Dışarıdan (Top'tan) çağrılan fonksiyon
     public void YanmaBaslat(float saniyeBasiHasar, int kacSaniyeSurucek)
