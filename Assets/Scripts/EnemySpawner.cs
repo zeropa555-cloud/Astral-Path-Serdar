@@ -1,23 +1,36 @@
 using UnityEngine;
-using UnityEngine.AI; // NavMesh için ÞART!
+using UnityEngine.AI;
+// using System.Collections.Generic; // Artýk List'e gerek yok
 
+[RequireComponent(typeof(BoxCollider))]
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Düþman Ayarlarý")]
+    [Header("Düþman Prefab'ý")]
+    [Tooltip("Spawn edilecek düþman prefab'ý")]
     public GameObject dusmanPrefab;
 
     [Header("Round Ayarlarý")]
-    public int maxRound = 2; // Toplam kaç round olsun?
-    public int dusmanSayisi = 5; // Her round'da kaç düþman spawn olacak?
-    public float roundArasiBekleme = 3.0f; // Round bittikten sonra yenisi kaç sn sonra baþlasýn?
+    public int ilkRoundSpawnSayisi = 5;
+    public int sonrakiRoundArtisi = 3;
+    public float roundArasiBekleme = 3.0f;
 
     private int mevcutRound = 0;
     private int hayattakiDusmanSayisi;
+    private int spawnEdilecekSayi;
     private Bounds navMeshBounds;
+
+    private bool roundBasladiMi = false;
 
     void Start()
     {
-        // 1. NavMesh sýnýrlarýný bul (Senin eski kodunla ayný)
+        // 1. Trigger'ý Ayarla (Arena giriþini)
+        BoxCollider triggerAlan = GetComponent<BoxCollider>();
+        if (triggerAlan != null)
+        {
+            triggerAlan.isTrigger = true;
+        }
+
+        // 2. NavMesh sýnýrlarýný bul
         NavMeshTriangulation navMeshData = NavMesh.CalculateTriangulation();
         if (navMeshData.vertices.Length > 0)
         {
@@ -27,70 +40,66 @@ public class EnemySpawner : MonoBehaviour
                 navMeshBounds.Encapsulate(vertex);
             }
         }
-        else
-        {
-            Debug.LogError("NavMesh datasý bulunamadý! Lütfen NavMesh'i bake et.");
-            return;
-        }
+        else { Debug.LogError("NavMesh datasý bulunamadý!"); return; }
 
-        // 2. "Ben öldüm!" sinyalini dinlemeye baþla
+        // 3. "Ben öldüm!" sinyalini dinle
         DusmanCanSistemi.OnDusmanOldu += DusmanOlduHaberiAldim;
 
-        // 3. Ýlk Round'u baþlat
-        RounduBaslat();
+        // 4. Havuz doldurma kodu SÝLÝNDÝ.
+
+        // 5. Round 1 sayýsýný ayarla, baþlamayý bekle
+        spawnEdilecekSayi = ilkRoundSpawnSayisi;
     }
 
-    // Script yok edildiðinde sinyali dinlemeyi býrak (hafýza sýzýntýsý olmasýn)
+    // Karakter (Player) bu objenin trigger'ýna girdiðinde çalýþýr
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player") && !roundBasladiMi)
+        {
+            Debug.Log("OYUNCU ARENAYA GÝRDÝ! ROUND 1 BAÞLIYOR!");
+            roundBasladiMi = true;
+            RounduBaslat();
+        }
+    }
+
     void OnDestroy()
     {
         DusmanCanSistemi.OnDusmanOldu -= DusmanOlduHaberiAldim;
     }
 
-    void RounduBaslat()
-    {
-        mevcutRound++; // Round sayýsýný 1 artýr
-
-        // Eðer son round'u da geçtiysek...
-        if (mevcutRound > maxRound)
-        {
-            Debug.Log("OYUN BÝTTÝ! KAZANDIN!");
-            this.enabled = false; // Spawner'ý durdur
-            return;
-        }
-
-        Debug.Log("ROUND " + mevcutRound + " BAÞLIYOR!");
-
-        // Bu round için hayattaki düþman sayýsýný ayarla
-        hayattakiDusmanSayisi = dusmanSayisi;
-
-        // 5 tane (veya "dusmanSayisi" kadar) düþman spawn et
-        for (int i = 0; i < dusmanSayisi; i++)
-        {
-            SpawnEt(); // Düþman yaratan yardýmcý fonksiyonu çaðýr
-        }
-    }
-
-    // Bir düþman öldüðünde 'DusmanCanSistemi'nden gelen sinyal bu fonksiyonu çalýþtýrýr
     void DusmanOlduHaberiAldim()
     {
-        hayattakiDusmanSayisi--; // Hayattaki düþman sayýsýný 1 azalt
-
-        // Eðer hayatta düþman kalmadýysa...
+        hayattakiDusmanSayisi--;
         if (hayattakiDusmanSayisi <= 0)
         {
             Debug.Log("ROUND " + mevcutRound + " TAMAMLANDI!");
-
-            // 3 saniye bekle, sonra yeni round'u baþlat
             Invoke("RounduBaslat", roundArasiBekleme);
         }
     }
 
-    // Bu fonksiyon sadece 1 tane düþman spawn eder
+    void RounduBaslat()
+    {
+        if (mevcutRound != 0)
+        {
+            spawnEdilecekSayi += sonrakiRoundArtisi;
+        }
+        mevcutRound++;
+        Debug.Log("ROUND " + mevcutRound + " BAÞLIYOR! (" + spawnEdilecekSayi + " düþman spawn edilecek)");
+
+        hayattakiDusmanSayisi = spawnEdilecekSayi;
+
+        for (int i = 0; i < spawnEdilecekSayi; i++)
+        {
+            SpawnEt();
+        }
+    }
+
+    // --- BU FONKSÝYON INSTANTIATE'E GERÝ DÖNDÜ ---
     void SpawnEt()
     {
         if (dusmanPrefab == null) return;
 
-        // NavMesh sýnýrlarý içinde rastgele bir nokta bul (Senin eski kodunla ayný)
+        // 1. Rastgele bir spawn noktasý bul (NavMesh üzerinde)
         float randomX = Random.Range(navMeshBounds.min.x, navMeshBounds.max.x);
         float randomZ = Random.Range(navMeshBounds.min.z, navMeshBounds.max.z);
         Vector3 rastgeleNokta = new Vector3(randomX, navMeshBounds.center.y, randomZ);
@@ -98,8 +107,12 @@ public class EnemySpawner : MonoBehaviour
         NavMeshHit hit;
         if (NavMesh.SamplePosition(rastgeleNokta, out hit, 10.0f, NavMesh.AllAreas))
         {
-            // Düþmaný o noktaya at
+            // 2. DÜÞMANI YARAT (Instantiate)
             Instantiate(dusmanPrefab, hit.position, Quaternion.identity);
+        }
+        else
+        {
+            Debug.LogWarning("Geçerli bir spawn noktasý bulunamadý, bu düþman spawn olamadý.");
         }
     }
 }
