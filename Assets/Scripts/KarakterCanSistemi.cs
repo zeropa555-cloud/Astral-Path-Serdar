@@ -3,8 +3,8 @@ using UnityEngine.Events; // UI ile konusmak icin bu SART!
 
 public class KarakterCanSistemi : MonoBehaviour
 {
-    [Header("Can Ayarlarý")]
-    public float maxCan = 100f; // Karakterin maksimum caný
+    [Header("Can Ayarlar ")]
+    public float maxCan = 100f; // Karakterin maksimum can 
 
     [Header("Mevcut Durum")]
     [SerializeField] // Inspector'da gorunsun ama diger scriptler degistiremesin
@@ -24,13 +24,13 @@ public class KarakterCanSistemi : MonoBehaviour
     }
 
     // DISARIDAN CAGRILACAK ANA FONKSIYON:
-    // Düþmanýn hasar vermesi için DüþmanAI scripti bu fonksiyonu çaðýracak!
+    // D  man n hasar vermesi i in D  manAI scripti bu fonksiyonu  a  racak!
     public void HasarAl(float miktar)
     {
         if (mevcutCan <= 0) return; // Zaten olu
 
         mevcutCan -= miktar;
-        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan); // Can 0'ýn altýna inmesin
+        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan); // Can 0' n alt na inmesin
 
         // UI'a yeni can yuzdesini (%kac kaldi) gonder
         OnCanDegisti.Invoke(mevcutCan / maxCan);
@@ -53,7 +53,7 @@ public class KarakterCanSistemi : MonoBehaviour
 
     private void OlumFonksiyonu()
     {
-        Debug.Log("Karakter ÖLDÜ!");
+        Debug.Log("Karakter  LD !");
         OnOlum.Invoke(); // Olum animasyonu vs. icin sinyal gonder
 
         // Hareketi durdur
@@ -63,7 +63,7 @@ public class KarakterCanSistemi : MonoBehaviour
             hareketScripti.enabled = false;
         }
 
-        // Saldýrýyý durdur
+        // Sald r y  durdur
         PlayerAttack attackScripti = GetComponent<PlayerAttack>();
         if (attackScripti != null)
         {
@@ -71,8 +71,5 @@ public class KarakterCanSistemi : MonoBehaviour
         }
     }
 
-    // --- 'K' TUÞU TEST KISMI KALDIRILDI ---
-    // void Update()
-    // {
-    // }
+
 }
