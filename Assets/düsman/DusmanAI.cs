@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.AI; 
+using UnityEngine.AI;
 
 [RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(Animator))]
@@ -10,7 +10,7 @@ public class DusmanAI : MonoBehaviour
     private Animator animator;
 
     [Tooltip("Düşmanın kovalayacağı ve saldıracağı oyuncu")]
-    public Transform player; 
+    public Transform player;
 
     [Header("Devriye Ayarları")]
     public float devriyeYaricapi = 20f;
@@ -24,7 +24,7 @@ public class DusmanAI : MonoBehaviour
     public float saldiriMesafesi = 2f;
     [Tooltip("Saldırılar arası bekleme süresi (saniye)")]
     public float saldiriCooldown = 1.5f;
-    
+
     // ----- YENİ EKLENDİ -----
     [Tooltip("Saldırının oyuncuya vereceği hasar miktarı")]
     public float saldiriHasari = 10f;
@@ -48,9 +48,9 @@ public class DusmanAI : MonoBehaviour
             try { player = GameObject.FindGameObjectWithTag("Player").transform; }
             catch (System.Exception) { Debug.LogError("SAHİP: Oyuncu bulunamadı."); hayatta = false; }
         }
-        
+
         mevcutDurum = Durum.Devriye;
-        YeniHedefBul(); 
+        YeniHedefBul();
     }
 
     void Update()
@@ -92,8 +92,8 @@ public class DusmanAI : MonoBehaviour
         if (Time.time > sonSaldiriZamani + saldiriCooldown)
         {
             animator.SetTrigger("Attack");
-            sonSaldiriZamani = Time.time; 
-            
+            sonSaldiriZamani = Time.time;
+
             // ----- YENİ GÜNCELLENEN KISIM -----
             // Oyuncuya hasar ver
             KarakterCanSistemi oyuncuCan = player.GetComponent<KarakterCanSistemi>();
@@ -102,14 +102,14 @@ public class DusmanAI : MonoBehaviour
                 oyuncuCan.HasarAl(saldiriHasari);
             }
             // ---------------------------------
-            
+
             Debug.Log(gameObject.name + " oyuncuya saldırdı!");
         }
 
         if (Vector3.Distance(transform.position, player.position) > saldiriMesafesi)
         {
             mevcutDurum = Durum.Takip;
-            agent.isStopped = false; 
+            agent.isStopped = false;
         }
     }
 
@@ -122,7 +122,7 @@ public class DusmanAI : MonoBehaviour
         float aci = Vector3.Angle(transform.forward, yonToPlayer);
         if (aci > gorusAcisi / 2) return false;
         RaycastHit hit;
-        Vector3 gozHizasi = transform.position + Vector3.up * 1.5f; 
+        Vector3 gozHizasi = transform.position + Vector3.up * 1.5f;
         if (Physics.Raycast(gozHizasi, yonToPlayer, out hit, gorusMesafesi, gorusLayerMask))
         {
             if (hit.transform == player) return true;
@@ -144,8 +144,8 @@ public class DusmanAI : MonoBehaviour
 
     public void OlumAnimasyonunuBaslat()
     {
-        if (!hayatta) return; 
-        hayatta = false; 
+        if (!hayatta) return;
+        hayatta = false;
         agent.isStopped = true;
         agent.velocity = Vector3.zero;
         animator.SetTrigger("Die");

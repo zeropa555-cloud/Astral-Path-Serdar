@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.Events; // UI ile konusmak icin bu SART!
-using UnityEngine.InputSystem; // <-- HATA GÝDERÝCÝ SATIR BU!
 
 public class KarakterCanSistemi : MonoBehaviour
 {
@@ -12,7 +11,7 @@ public class KarakterCanSistemi : MonoBehaviour
     private float mevcutCan;
 
     [Header("UI Sinyali")]
-    // Bu sinyal, can degistiginde UI'daki slider'a "yeni degeri" gonderecek (0.0 ile 1.0 arasi)
+    // Bu sinyal, can degistiginde UI'daki slider'a "yeni degeri" gonderecek
     public UnityEvent<float> OnCanDegisti;
 
     // Opsiyonel: Karakter oldugunde calisir
@@ -20,30 +19,21 @@ public class KarakterCanSistemi : MonoBehaviour
 
     void Start()
     {
-        // Oyuna tam canla basla
         mevcutCan = maxCan;
-
-        // UI'in da tam canla baslamasi icin ilk sinyali gonder
         OnCanDegisti.Invoke(mevcutCan / maxCan);
     }
 
-    // DISARIDAN CAGRILACAK FONKSIYONLAR:
-
-    /// <summary>
-    /// Karaktere hasar verir.
-    /// </summary>
-    /// <param name="miktar">Hasar miktari</param>
+    // DISARIDAN CAGRILACAK ANA FONKSIYON:
+    // Düþmanýn hasar vermesi için DüþmanAI scripti bu fonksiyonu çaðýracak!
     public void HasarAl(float miktar)
     {
-        if (mevcutCan <= 0) return; // Zaten oluyse tekrar hasar alma
+        if (mevcutCan <= 0) return; // Zaten olu
 
         mevcutCan -= miktar;
-        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan); // Canin 0'in altina inmesini engelle
+        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan); // Can 0'ýn altýna inmesin
 
         // UI'a yeni can yuzdesini (%kac kaldi) gonder
         OnCanDegisti.Invoke(mevcutCan / maxCan);
-
-        // Debug.Log("Hasar alindi! Mevcut Can: " + mevcutCan);
 
         if (mevcutCan <= 0)
         {
@@ -51,40 +41,38 @@ public class KarakterCanSistemi : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Karakteri iyilestirir.
-    /// </summary>
-    /// <param name="miktar">Iyilestirme miktari</param>
     public void Iyiles(float miktar)
     {
-        if (mevcutCan <= 0 || mevcutCan == maxCan) return; // Oluyse veya cani fulse iyilesme
+        if (mevcutCan <= 0 || mevcutCan == maxCan) return;
 
         mevcutCan += miktar;
-        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan); // Canin maxCan'i gecmesini engelle
+        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan);
 
-        // UI'a yeni can yuzdesini gonder
         OnCanDegisti.Invoke(mevcutCan / maxCan);
-
-        // Debug.Log("Iyilesildi! Mevcut Can: " + mevcutCan);
     }
 
     private void OlumFonksiyonu()
     {
-        // Burasi karakter olunce calisir
         Debug.Log("Karakter ÖLDÜ!");
         OnOlum.Invoke(); // Olum animasyonu vs. icin sinyal gonder
 
-        // Istersen burada hareketi durdurabilirsin
-        // GetComponent<SimpleMove>().enabled = false;
-    }
-
-    // --- TEST ICIN ---
-    // Oyundayken 'K' tusuna basip calisiyor mu diye bakabilirsin
-    void Update()
-    {
-        if (Keyboard.current != null && Keyboard.current.kKey.wasPressedThisFrame)
+        // Hareketi durdur
+        SimpleMove hareketScripti = GetComponent<SimpleMove>();
+        if (hareketScripti != null)
         {
-            HasarAl(10f); // Test icin 10 hasar ver
+            hareketScripti.enabled = false;
+        }
+
+        // Saldýrýyý durdur
+        PlayerAttack attackScripti = GetComponent<PlayerAttack>();
+        if (attackScripti != null)
+        {
+            attackScripti.enabled = false;
         }
     }
+
+    // --- 'K' TUÞU TEST KISMI KALDIRILDI ---
+    // void Update()
+    // {
+    // }
 }

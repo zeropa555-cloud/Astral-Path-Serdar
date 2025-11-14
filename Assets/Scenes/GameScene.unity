@@ -3714,7 +3714,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2107746738}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: AtisNoktasi
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6223,7 +6223,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DusmanCanSistemi
   maxCan: 50
+  canBariParent: {fileID: 0}
   canBariSlider: {fileID: 597789752}
+  gorunurlukSuresi: 4
 --- !u!136 &5866666020506773140
 CapsuleCollider:
   m_ObjectHideFlags: 0
