@@ -6933,6 +6933,7 @@ MonoBehaviour:
   morBuyuMana: 10
   atesTopuPrefab: {fileID: 1546925736646382419, guid: 454b051ae53202c4589ee9814ab96966, type: 3}
   atesBuyuMana: 25
+  atesAnimasyonGecikmesi: 0.3
 --- !u!114 &5866666020924625868
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,27 +1,33 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
-using UnityEngine.UI; // 1. BU SATIRI EKLEMEK ÞART! (UI için)
+using UnityEngine.UI;
+using System.Collections; // 1. BU SATIRI EKLEMEK ÅžART! (ZamanlayÄ±cÄ± iÃ§in)
 
 public class PlayerAttack : MonoBehaviour
 {
     [Header("Gerekli Objeler")]
     public Transform atisNoktasi;
 
-    [Header("UI Ayarlarý")]
-    public Image buyuIkonu;  // O ortadaki elmas þeklindeki "Buyu" objesini buraya atacaðýz
-    public Color morRenk = new Color(0.6f, 0f, 1f); // Varsayýlan Mor
-    public Color atesRengi = Color.red;            // Ateþ Kýrmýzýsý
+    [Header("UI AyarlarÄ±")]
+    public Image buyuIkonu;
+    public Color morRenk = new Color(0.6f, 0f, 1f);
+    public Color atesRengi = Color.red;
 
-    [Header("Büyü 1 (Standart)")]
+    [Header("BÃ¼yÃ¼ 1 (Standart)")]
     public GameObject morBuyuPrefab;
     public float morBuyuMana = 10f;
 
-    [Header("Büyü 2 (Ateþ)")]
+    [Header("BÃ¼yÃ¼ 2 (AteÅŸ)")]
     public GameObject atesTopuPrefab;
     public float atesBuyuMana = 25f;
 
-    // O an hangisini kullanýyoruz?
+    // ----- 2. YENÄ° EKLENEN SATIR -----
+    [Header("Senkronizasyon")]
+    [Tooltip("Animasyon baÅŸladÄ±ktan KAÃ‡ SANÄ°YE SONRA top fÄ±rlasÄ±n?")]
+    public float atesAnimasyonGecikmesi = 0.5f; // Animasyonun bitme sÃ¼resi
+    // ------------------------------------
+
     private GameObject seciliBuyuPrefab;
     private float seciliManaMaliyeti;
 
@@ -33,8 +39,6 @@ public class PlayerAttack : MonoBehaviour
     {
         animator = GetComponentInChildren<Animator>();
         manaSistemi = GetComponent<ManaSistemi>();
-
-        // Oyun baþlayýnca varsayýlan olarak 1. büyüyü seç
         BuyuSec(1);
     }
 
@@ -42,18 +46,9 @@ public class PlayerAttack : MonoBehaviour
     {
         if (Keyboard.current != null)
         {
-            // 1'e basýnca Mor Büyüye geç
-            if (Keyboard.current.digit1Key.wasPressedThisFrame)
-            {
-                BuyuSec(1);
-            }
-            // 2'ye basýnca Ateþ Topuna geç
-            if (Keyboard.current.digit2Key.wasPressedThisFrame)
-            {
-                BuyuSec(2);
-            }
+            if (Keyboard.current.digit1Key.wasPressedThisFrame) { BuyuSec(1); }
+            if (Keyboard.current.digit2Key.wasPressedThisFrame) { BuyuSec(2); }
 
-            // Sol týk ile ateþ et
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 if (!EventSystem.current.IsPointerOverGameObject())
@@ -70,43 +65,50 @@ public class PlayerAttack : MonoBehaviour
         {
             seciliBuyuPrefab = morBuyuPrefab;
             seciliManaMaliyeti = morBuyuMana;
-
-            // --- UI RENGÝNÝ MOR YAP ---
-            if (buyuIkonu != null)
-            {
-                buyuIkonu.color = morRenk;
-            }
-
-            Debug.Log("Büyü 1 Seçildi: Standart Büyü");
+            if (buyuIkonu != null) { buyuIkonu.color = morRenk; }
+            Debug.Log("BÃ¼yÃ¼ 1 SeÃ§ildi: Standart BÃ¼yÃ¼");
         }
         else if (numara == 2)
         {
             seciliBuyuPrefab = atesTopuPrefab;
             seciliManaMaliyeti = atesBuyuMana;
-
-            // --- UI RENGÝNÝ KIRMIZI YAP ---
-            if (buyuIkonu != null)
-            {
-                buyuIkonu.color = atesRengi;
-            }
-
-            Debug.Log("Büyü 2 Seçildi: Ateþ Topu");
+            if (buyuIkonu != null) { buyuIkonu.color = atesRengi; }
+            Debug.Log("BÃ¼yÃ¼ 2 SeÃ§ildi: AteÅŸ Topu");
         }
     }
 
+    // ----- 3. GÃœNCELLENEN FONKSÄ°YON -----
     void AtesEt()
     {
         if (seciliBuyuPrefab == null || atisNoktasi == null) return;
 
+        // 1. Mana kontrolÃ¼
         if (manaSistemi != null)
         {
             if (manaSistemi.ManaHarca(seciliManaMaliyeti) == false)
             {
-                return; // Mana yok
+                return; // Mana yoksa HÄ°Ã‡BÄ°R ÅžEY yapma
             }
         }
 
+        // 2. Mana varsa, SADECE animasyonu tetikle
         if (animator != null) animator.SetTrigger(HashAttack);
-        Instantiate(seciliBuyuPrefab, atisNoktasi.position, atisNoktasi.rotation);
+
+        // 3. Topu fÄ±rlatmak iÃ§in ZAMANLAYICIYI (Coroutine) baÅŸlat
+        StartCoroutine(AtesGecikmesiRutini());
+    }
+
+    // ----- 4. YENÄ° EKLENEN ZAMANLAYICI -----
+    IEnumerator AtesGecikmesiRutini()
+    {
+        // Kod, bu satÄ±rda 'atesAnimasyonGecikmesi' saniyesi kadar bekleyecek
+        yield return new WaitForSeconds(atesAnimasyonGecikmesi);
+
+        // Bekleme sÃ¼resi bittikten sonra:
+        // Topu (bÃ¼yÃ¼yÃ¼) fÄ±rlat
+        if (seciliBuyuPrefab != null && atisNoktasi != null)
+        {
+            Instantiate(seciliBuyuPrefab, atisNoktasi.position, atisNoktasi.rotation);
+        }
     }
 }
