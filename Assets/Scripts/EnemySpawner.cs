@@ -9,10 +9,13 @@ public class EnemySpawner : MonoBehaviour
     [Header("Düþman Prefab'ý")]
     public GameObject dusmanPrefab;
 
+    [Header("Kapi Ayarlarý")]
+    [Tooltip("Arena baþlayýnca kapanacak (aktif olacak) kapý/bariyer objeleri")]
+    public GameObject[] arenaKapilari;
+
     [Header("Round Ayarlarý")]
     public int toplamRoundSayisi = 2;
     public float roundArasiBekleme = 3.0f;
-
     [Header("Rastgele Spawn Sayýlarý")]
     public int minSpawnSayisi = 3;
     public int maxSpawnSayisi = 6;
@@ -24,57 +27,73 @@ public class EnemySpawner : MonoBehaviour
     private int spawnEdilecekSayi;
     private bool roundBasladiMi = false;
 
-    // --- YENÝ EKLENDÝ ---
-    // Bütün haritanýn NavMesh'i yerine, bu trigger'ýn collider'ýný kullanacaðýz
+    // Collider'ý hafýzada tutacaðýz
     private BoxCollider spawnAlaniTrigger;
-    // -------------------
 
     void Start()
     {
         tumRoundlarBitti = false;
 
         // 1. Trigger'ý Ayarla (ve hafýzaya al)
-        spawnAlaniTrigger = GetComponent<BoxCollider>(); // Collider'ý bul
+        spawnAlaniTrigger = GetComponent<BoxCollider>();
         if (spawnAlaniTrigger != null)
         {
             spawnAlaniTrigger.isTrigger = true;
         }
 
-        // 2. NavMesh sýnýrlarýný bulma kodu SÝLÝNDÝ.
-        //    Artýk spawnAlaniTrigger.bounds kullanacaðýz.
+        // --- (GEREKSÝZ KOD SÝLÝNDÝ) ---
+        // NavMesh sýnýrlarýný bulma kodu buradan kaldýrýldý.
+        // Artýk spawnAlaniTrigger.bounds kullanýyoruz.
+        // --------------------------------
 
         // 3. "Ben öldüm!" sinyalini dinle
         DusmanCanSistemi.OnDusmanOldu += DusmanOlduHaberiAldim;
+
+        // 4. Kapýlarýn AÇIK (kapalý) olduðundan emin ol
+        foreach (GameObject kapi in arenaKapilari)
+        {
+            if (kapi != null) kapi.SetActive(false);
+        }
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // (Burasý ayný kaldý)
         if (other.CompareTag("Player") && !roundBasladiMi)
         {
-            Debug.Log("OYUNCU ARENAYA GÝRDÝ! ROUND 1 BAÞLIYOR!");
+            Debug.Log("OYUNCU ARENAYA GÝRDÝ! KAPILAR KÝLÝTLENÝYOR!");
             roundBasladiMi = true;
+
+            // Kapýlarý Kapat (barrier'larý aktif et)
+            foreach (GameObject kapi in arenaKapilari)
+            {
+                if (kapi != null) kapi.SetActive(true);
+            }
+
             RounduBaslat();
         }
     }
 
     void OnDestroy()
     {
-        // (Burasý ayný kaldý)
         DusmanCanSistemi.OnDusmanOldu -= DusmanOlduHaberiAldim;
     }
 
     void DusmanOlduHaberiAldim()
     {
-        // (Burasý ayný kaldý)
         hayattakiDusmanSayisi--;
         if (hayattakiDusmanSayisi <= 0)
         {
             Debug.Log("ROUND " + mevcutRound + " TAMAMLANDI!");
             if (mevcutRound >= toplamRoundSayisi)
             {
-                Debug.Log("TÜM DÜÞMANLAR YENÝLDÝ! Sandýk kilidi açýldý.");
+                Debug.Log("TÜM DÜÞMANLAR YENÝLDÝ! Sandýk kilidi ve kapýlar açýldý.");
                 tumRoundlarBitti = true;
+
+                // Tüm roundlar bitti, Kapýlarý AÇ
+                foreach (GameObject kapi in arenaKapilari)
+                {
+                    if (kapi != null) kapi.SetActive(false);
+                }
             }
             else
             {
@@ -85,27 +104,14 @@ public class EnemySpawner : MonoBehaviour
 
     void RounduBaslat()
     {
-        // (Burasý ayný kaldý)
         mevcutRound++;
-        if (mevcutRound == 1)
-        {
-            spawnEdilecekSayi = Random.Range(minSpawnSayisi, maxSpawnSayisi + 1);
-        }
-        else
-        {
-            spawnEdilecekSayi += Random.Range(minArtis, maxArtis + 1);
-        }
-
+        if (mevcutRound == 1) { spawnEdilecekSayi = Random.Range(minSpawnSayisi, maxSpawnSayisi + 1); }
+        else { spawnEdilecekSayi += Random.Range(minArtis, maxArtis + 1); }
         Debug.Log("ROUND " + mevcutRound + " BAÞLIYOR! (RASTGELE " + spawnEdilecekSayi + " düþman spawn edilecek)");
-
         hayattakiDusmanSayisi = spawnEdilecekSayi;
-        for (int i = 0; i < spawnEdilecekSayi; i++)
-        {
-            SpawnEt();
-        }
+        for (int i = 0; i < spawnEdilecekSayi; i++) { SpawnEt(); }
     }
 
-    // --- BU FONKSÝYON TAMAMEN GÜNCELLENDÝ ---
     void SpawnEt()
     {
         if (dusmanPrefab == null || spawnAlaniTrigger == null) return;
@@ -116,24 +122,17 @@ public class EnemySpawner : MonoBehaviour
         // 2. O kutunun sýnýrlarý içinde rastgele bir X ve Z noktasý seç
         float randomX = Random.Range(triggerBounds.min.x, triggerBounds.max.x);
         float randomZ = Random.Range(triggerBounds.min.z, triggerBounds.max.z);
-
-        // Y (yükseklik) olarak trigger'ýn zeminini al (merkezi - yarým yüksekliði)
         Vector3 rastgeleNokta = new Vector3(randomX, triggerBounds.center.y - triggerBounds.extents.y, randomZ);
 
-        // 3. Bu noktanýn NavMesh üzerinde (duvar içinde deðil) olduðundan emin ol
+        // 3. Bu noktanýn NavMesh üzerinde olduðundan emin ol
         NavMeshHit hit;
-
-        // 'rastgeleNokta'ya en yakýn (3m içinde) yürünebilir noktayý bul
         if (NavMesh.SamplePosition(rastgeleNokta, out hit, 3.0f, NavMesh.AllAreas))
         {
-            // Geçerli bir nokta bulundu! Düþmaný oraya at.
             Instantiate(dusmanPrefab, hit.position, Quaternion.identity);
         }
         else
         {
-            // Eðer o rastgele nokta (ve 3m çevresi) yürünebilir deðilse, tekrar dene (veya uyarý ver)
             Debug.LogWarning("Geçerli bir spawn noktasý bulunamadý. Trigger'ýn NavMesh üzerinde olduðundan emin ol.");
-            // (Ýleri seviye: Burada 'SpawnEt' fonksiyonunu tekrar çaðýrabilirsin ama þimdilik gerek yok)
         }
     }
 }
