@@ -12,15 +12,15 @@ public class SandikEtkilesim : MonoBehaviour
 
     void Start()
     {
+        // (Bu fonksiyon aynı, dokunulmadı)
         animator = GetComponent<Animator>();
-
-        // Oyun başlarken puzzle paneli açıksa kapatalım
         if (puzzlePaneli != null)
         {
             puzzlePaneli.SetActive(false);
         }
     }
 
+    // --- BU FONKSİYON GÜNCELLENDİ ---
     void Update()
     {
         var keyboard = Keyboard.current;
@@ -31,31 +31,41 @@ public class SandikEtkilesim : MonoBehaviour
         // Eğer oyuncu yakındaysa, E'ye bastıysa ve sandık henüz açılmadıysa
         if (oyuncuYakininda && eTusunaBasildi && !acildi)
         {
-            // Sandığı açma! Sadece Puzzle Panelini aç.
-            if (puzzlePaneli != null)
+            // --- YENİ KONTROL EKLENDİ ---
+            // Spawner'a "Tüm round'lar bitti mi?" diye sor
+            if (EnemySpawner.tumRoundlarBitti == true)
             {
-                puzzlePaneli.SetActive(true); // Paneli görünür yap
-
-                // Mouse'u görünür yap
-                Cursor.visible = true;
-                Cursor.lockState = CursorLockMode.None;
+                // Evet, bitti. Puzzle panelini AÇ.
+                if (puzzlePaneli != null)
+                {
+                    puzzlePaneli.SetActive(true); // Paneli görünür yap
+                    Cursor.visible = true;
+                    Cursor.lockState = CursorLockMode.None;
+                }
+                else
+                {
+                    Debug.LogError("Puzzle Paneli kutucuğu boş!");
+                }
             }
             else
             {
-                Debug.LogError("Puzzle Paneli kutucuğu boş!");
+                // Hayır, bitmedi. Sandığı AÇMA.
+                Debug.Log("KİLİTLİ! Sandığı açmak için önce tüm düşmanları yenmelisin!");
+                // (Buraya "kilitli" sesi veya mesajı ekleyebilirsin)
             }
+            // --- GÜNCELLEME BİTTİ ---
         }
     }
+    // --- GÜNCELLEME BİTTİ ---
 
     // Bu fonksiyonu PuzzleYoneticisi scripti çağıracak
     public void SandigiAc()
     {
+        // (Bu fonksiyon aynı, dokunulmadı)
         if (!acildi)
         {
             acildi = true;
-            animator.SetTrigger("OpenChest"); // Animasyonu şimdi oynat
-
-            // Mouse'u tekrar gizle
+            animator.SetTrigger("OpenChest");
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
         }
@@ -63,6 +73,7 @@ public class SandikEtkilesim : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // (Bu fonksiyon aynı, dokunulmadı)
         if (other.CompareTag("Player"))
         {
             oyuncuYakininda = true;
@@ -71,15 +82,13 @@ public class SandikEtkilesim : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
+        // (Bu fonksiyon aynı, dokunulmadı)
         if (other.CompareTag("Player"))
         {
             oyuncuYakininda = false;
-
-            // Oyuncu uzaklaşırsa puzzle paneli de kapansın
             if (puzzlePaneli != null && puzzlePaneli.activeSelf)
             {
                 puzzlePaneli.SetActive(false);
-                // Mouse'u tekrar gizle
                 Cursor.visible = false;
                 Cursor.lockState = CursorLockMode.Locked;
             }

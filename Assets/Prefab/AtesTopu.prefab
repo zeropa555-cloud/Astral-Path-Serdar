@@ -155,3 +155,6 @@ MonoBehaviour:
   hiz: 25
   hasarMiktari: 10
   yasamSuresi: 4
+  yakiciOlsunMu: 1
+  yanmaHasari: 10
+  kacSaniyeYansin: 4
