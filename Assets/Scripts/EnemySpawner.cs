@@ -11,7 +11,15 @@ public class EnemySpawner : MonoBehaviour
 
     [Header("Kapi Ayarlarý")]
     [Tooltip("Arena baþlayýnca kapanacak (aktif olacak) kapý/bariyer objeleri")]
-    public GameObject[] arenaKapilari;
+    public GameObject[] arenaKapilari; // (SENÝN KODUN - DOKUNULMADI)
+
+    // --- YENÝ EKLENDÝ (MÜZÝK) ---
+    [Header("Müzik Ayarlarý")]
+    [Tooltip("Savaþ baþlayýnca çalacak olan AudioSource (bu objede olmalý)")]
+    public AudioSource savasMuzigiSource;
+    [Tooltip("Savaþ baþlayýnca DURDURULACAK olan normal müzik (Oyuncuda veya Kamerada olabilir)")]
+    public AudioSource normalMuzikSource;
+    // ------------------------------------
 
     [Header("Round Ayarlarý")]
     public int toplamRoundSayisi = 2;
@@ -26,34 +34,33 @@ public class EnemySpawner : MonoBehaviour
     private int hayattakiDusmanSayisi;
     private int spawnEdilecekSayi;
     private bool roundBasladiMi = false;
-
-    // Collider'ý hafýzada tutacaðýz
     private BoxCollider spawnAlaniTrigger;
 
     void Start()
     {
         tumRoundlarBitti = false;
-
-        // 1. Trigger'ý Ayarla (ve hafýzaya al)
         spawnAlaniTrigger = GetComponent<BoxCollider>();
         if (spawnAlaniTrigger != null)
         {
             spawnAlaniTrigger.isTrigger = true;
         }
 
-        // --- (GEREKSÝZ KOD SÝLÝNDÝ) ---
-        // NavMesh sýnýrlarýný bulma kodu buradan kaldýrýldý.
-        // Artýk spawnAlaniTrigger.bounds kullanýyoruz.
-        // --------------------------------
-
-        // 3. "Ben öldüm!" sinyalini dinle
         DusmanCanSistemi.OnDusmanOldu += DusmanOlduHaberiAldim;
 
-        // 4. Kapýlarýn AÇIK (kapalý) olduðundan emin ol
+        // Kapýlarýn AÇIK olduðundan emin ol (SENÝN KODUN - DOKUNULMADI)
         foreach (GameObject kapi in arenaKapilari)
         {
             if (kapi != null) kapi.SetActive(false);
         }
+
+        // --- YENÝ EKLENDÝ (MÜZÝK) ---
+        // Savaþ müziðinin baþlangýçta kapalý ve döngüde olduðundan emin ol
+        if (savasMuzigiSource != null)
+        {
+            savasMuzigiSource.Stop();
+            savasMuzigiSource.loop = true; // Savaþ bitene kadar döngüde çal
+        }
+        // ----------------------------
     }
 
     void OnTriggerEnter(Collider other)
@@ -63,11 +70,24 @@ public class EnemySpawner : MonoBehaviour
             Debug.Log("OYUNCU ARENAYA GÝRDÝ! KAPILAR KÝLÝTLENÝYOR!");
             roundBasladiMi = true;
 
-            // Kapýlarý Kapat (barrier'larý aktif et)
+            // Kapýlarý Kapat (barrier'larý aktif et) (SENÝN KODUN - DOKUNULMADI)
             foreach (GameObject kapi in arenaKapilari)
             {
                 if (kapi != null) kapi.SetActive(true);
             }
+
+            // --- YENÝ EKLENDÝ (MÜZÝK) ---
+            // Normal müziði durdur
+            if (normalMuzikSource != null && normalMuzikSource.isPlaying)
+            {
+                normalMuzikSource.Stop();
+            }
+            // Savaþ müziðini baþlat
+            if (savasMuzigiSource != null)
+            {
+                savasMuzigiSource.Play();
+            }
+            // ---------------------------
 
             RounduBaslat();
         }
@@ -89,11 +109,23 @@ public class EnemySpawner : MonoBehaviour
                 Debug.Log("TÜM DÜÞMANLAR YENÝLDÝ! Sandýk kilidi ve kapýlar açýldý.");
                 tumRoundlarBitti = true;
 
-                // Tüm roundlar bitti, Kapýlarý AÇ
+                // Tüm roundlar bitti, Kapýlarý AÇ (SENÝN KODUN - DOKUNULMADI)
                 foreach (GameObject kapi in arenaKapilari)
                 {
                     if (kapi != null) kapi.SetActive(false);
                 }
+
+                // --- YENÝ EKLENDÝ (MÜZÝK) ---
+                // Savaþ bitti, müziði deðiþtir
+                if (savasMuzigiSource != null && savasMuzigiSource.isPlaying)
+                {
+                    savasMuzigiSource.Stop();
+                }
+                if (normalMuzikSource != null)
+                {
+                    normalMuzikSource.Play(); // Normal müziði geri aç
+                }
+                // ---------------------------
             }
             else
             {
@@ -104,6 +136,7 @@ public class EnemySpawner : MonoBehaviour
 
     void RounduBaslat()
     {
+        // (SENÝN KODUN - DOKUNULMADI)
         mevcutRound++;
         if (mevcutRound == 1) { spawnEdilecekSayi = Random.Range(minSpawnSayisi, maxSpawnSayisi + 1); }
         else { spawnEdilecekSayi += Random.Range(minArtis, maxArtis + 1); }
@@ -114,17 +147,12 @@ public class EnemySpawner : MonoBehaviour
 
     void SpawnEt()
     {
+        // (SENÝN KODUN - DOKUNULMADI)
         if (dusmanPrefab == null || spawnAlaniTrigger == null) return;
-
-        // 1. Trigger'ýn (BoxCollider) sýnýrlarýný al
         Bounds triggerBounds = spawnAlaniTrigger.bounds;
-
-        // 2. O kutunun sýnýrlarý içinde rastgele bir X ve Z noktasý seç
         float randomX = Random.Range(triggerBounds.min.x, triggerBounds.max.x);
         float randomZ = Random.Range(triggerBounds.min.z, triggerBounds.max.z);
         Vector3 rastgeleNokta = new Vector3(randomX, triggerBounds.center.y - triggerBounds.extents.y, randomZ);
-
-        // 3. Bu noktanýn NavMesh üzerinde olduðundan emin ol
         NavMeshHit hit;
         if (NavMesh.SamplePosition(rastgeleNokta, out hit, 3.0f, NavMesh.AllAreas))
         {
