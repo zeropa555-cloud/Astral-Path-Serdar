@@ -20,7 +20,7 @@ public class DialogueManager : MonoBehaviour
 
     void Awake()
     {
-        // Singleton kurulumu
+        // (Burasý ayný kaldý)
         if (instance == null)
             instance = this;
         else
@@ -29,17 +29,16 @@ public class DialogueManager : MonoBehaviour
 
     void Start()
     {
+        // (Burasý ayný kaldý)
         cumleler = new Queue<DiyalogSatiri>();
-        if (diyalogPanel != null) diyalogPanel.SetActive(false); // Baslangicta kapali
+        if (diyalogPanel != null) diyalogPanel.SetActive(false);
     }
 
     void Update()
     {
-        // Eger diyalog paneli aciksa VE fareye tiklandiysa
-        // (Not: Bu kod diyaloðu "ilerletmek" içindir, "E" tuþu sadece baslatir)
+        // (Burasý ayný kaldý)
         if (diyalogPanel.activeSelf && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
         {
-            // UI'a tiklamadigimizdan emin ol (guvenlik amacli)
             if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
                 return;
 
@@ -50,52 +49,52 @@ public class DialogueManager : MonoBehaviour
     // DISARIDAN CAGRILACAK ANA FONKSIYON
     public void KonusmayiBaslat(Konusma konusma)
     {
-        diyalogPanel.SetActive(true); // Paneli gorunur yap
-        cumleler.Clear(); // Eski konusmayi temizle
+        // (Burasý ayný kaldý)
+        diyalogPanel.SetActive(true);
+        cumleler.Clear();
 
-        // Yeni konusmanin tum cumlelerini kuyruga ekle
         foreach (DiyalogSatiri satir in konusma.satirlar)
         {
             cumleler.Enqueue(satir);
         }
 
-        SiradakiCumleyiGoster(); // Ilk cumleyi goster
+        SiradakiCumleyiGoster();
     }
 
     public void SiradakiCumleyiGoster()
     {
-        // Eger kuyrukta cumle kalmadiysa, konusmayi bitir
+        // (Burasý ayný kaldý)
         if (cumleler.Count == 0)
         {
             KonusmayiBitir();
             return;
         }
 
-        // Kuyruktaki ilk cumleyi cek
         DiyalogSatiri satir = cumleler.Dequeue();
-
-        // UI elemanlarini guncelle
         isimText.text = satir.konusmaciAdi;
         metinAlaniText.text = satir.metin;
 
-        // --- GÜNCELLENEN PORTRE KISMI ---
         if (satir.konusmaciPortresi != null)
         {
-            // Eger bu satir icin bir portre resmi atanmissa
             portreImage.sprite = satir.konusmaciPortresi;
-            portreImage.enabled = true; // Resim kutusunu gorunur yap
+            portreImage.enabled = true;
         }
         else
         {
-            // Portre atanmamissa (mesela oyuncu konusuyorsa)
-            portreImage.enabled = false; // Resim kutusunu gizle
+            portreImage.enabled = false;
         }
-        // --- GÜNCELLEME BÝTTÝ ---
     }
 
+    // --- BU FONKSÝYON GÜNCELLENDÝ ---
     public void KonusmayiBitir()
     {
         diyalogPanel.SetActive(false); // Paneli gizle
         Debug.Log("Konuþma bitti.");
+
+        // --- YENÝ EKLENDÝ (KAPIYI AÇMAK ÝÇÝN) ---
+        // Konuþan NPC'ye "Ben bittim, kapýný açabilirsin" sinyalini yolla
+        NPCDialogue.KonusmaBittiSinyali();
+        // ---------------------------------------
     }
+    // --- GÜNCELLEME BÝTTÝ ---
 }
