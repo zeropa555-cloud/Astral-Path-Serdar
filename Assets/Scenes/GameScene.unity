@@ -3173,6 +3173,7 @@ GameObject:
   - component: {fileID: 435853837}
   - component: {fileID: 435853836}
   - component: {fileID: 435853835}
+  - component: {fileID: 435853841}
   m_Layer: 0
   m_Name: enemy 1
   m_TagString: Untagged
@@ -3199,6 +3200,7 @@ MonoBehaviour:
   saldiriMesafesi: 2
   saldiriCooldown: 1.5
   saldiriHasari: 10
+  hasarTriggerAdi: Hit
   gorusLayerMask:
     serializedVersion: 2
     m_Bits: 257
@@ -3263,6 +3265,7 @@ MonoBehaviour:
   canBariParent: {fileID: 0}
   canBariSlider: {fileID: 567060490}
   gorunurlukSuresi: 4
+  hasarAnimasyonGecikmesi: 0
 --- !u!95 &435853839
 Animator:
   serializedVersion: 7
@@ -3303,6 +3306,23 @@ Transform:
   - {fileID: 307726005}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &435853841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 435853834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83292d1f438cba640af10d3d82539cfc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DusmanAnimasyonKontrolcusu
+  animator: {fileID: 0}
+  speedParam: Speed
+  attackTrigger: Attack
+  hitTrigger: Hit
+  dieTrigger: Die
 --- !u!1 &438942900
 GameObject:
   m_ObjectHideFlags: 0
@@ -10773,7 +10793,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::KarakterCanSistemi
   maxCan: 100
-  olumPaneli: {fileID: 1676970995}
   mevcutCan: 0
   OnCanDegisti:
     m_PersistentCalls:
@@ -10805,6 +10824,8 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  hasarTriggerAdi: Hit
+  hasarAnimasyonGecikmesi: 0.7
 --- !u!135 &1031577047
 SphereCollider:
   m_ObjectHideFlags: 0
