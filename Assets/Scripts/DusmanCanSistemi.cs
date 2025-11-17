@@ -23,20 +23,22 @@ public class DusmanCanSistemi : MonoBehaviour
     [Tooltip("Can bari hasar aldiktan kac saniye sonra gizlensin?")]
     public float gorunurlukSuresi = 4f;
 
-    private Coroutine hideTimer; // Zamanlayiciyi tutmak icin
+    // ----- 1. YENİ EKLENEN AYARLAR -----
+    [Header("Animasyon Ayarları")]
+    [Tooltip("Hasar aldıktan KAÇ SANİYE SONRA 'Hit' animasyonu başlasın?")]
+    public float hasarAnimasyonGecikmesi = 0.1f; // Saniye cinsinden gecikme
+    private Coroutine hasarCoroutine; // Hasar animasyonu zamanlayıcısı
+    // ------------------------------------
 
-    // Diğer DusmanAI script'ine komut vermek için onu burada tutacağız
+    private Coroutine hideTimer; // Zamanlayiciyi tutmak icin
     private DusmanAI dusmanAIScripti;
 
     void Start()
     {
         mevcutCan = maxCan;
-
-        // Slider'i guncelle ama baslangicta gizli tut
         if (canBariSlider != null) canBariSlider.value = 1f;
         if (canBariParent != null) canBariParent.SetActive(false);
-
-        // Başlangıçta, bu objenin üzerindeki DusmanAI script'ini bul ve sakla
+        
         dusmanAIScripti = GetComponent<DusmanAI>();
         if (dusmanAIScripti == null)
         {
@@ -50,24 +52,46 @@ public class DusmanCanSistemi : MonoBehaviour
         if (mevcutCan <= 0) return; // Zaten olu
 
         mevcutCan -= miktar;
-        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan); // Can 0'ın altına düşmesin
+        mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan);
 
-        // UI'i guncelle
         if (canBariSlider != null)
         {
             canBariSlider.value = mevcutCan / maxCan;
         }
 
+        // --- 2. GÜNCELLENEN MANTIK ---
         if (mevcutCan <= 0)
         {
             OlumFonksiyonu();
         }
         else
         {
-            // Hasar aldi ama olmedi: Can barini goster ve zamanlayiciyi baslat
+            // Can BİTMEDİYSE:
+            // 1. Can barını göster (Mevcut kodunuz)
             GosterCanBari();
+
+            // 2. Gecikmeli Hasar Animasyonunu başlat (Yeni eklenen)
+            if (hasarCoroutine != null) StopCoroutine(hasarCoroutine);
+            hasarCoroutine = StartCoroutine(GecikmeliHasarAnimasyonu());
         }
+        // -----------------------------
     }
+
+    // ----- 3. YENİ EKLENEN ZAMANLAYICI FONKSİYONU -----
+    IEnumerator GecikmeliHasarAnimasyonu()
+    {
+        // 1. Belirlenen süre kadar bekle
+        yield return new WaitForSeconds(hasarAnimasyonGecikmesi);
+
+        // 2. Süre doldu, AI script'ine "animasyonu oynat" de
+        if (dusmanAIScripti != null)
+        {
+            dusmanAIScripti.HasarAnimasyonunuBaslat();
+        }
+
+        hasarCoroutine = null;
+    }
+    // ------------------------------------------------
 
     void GosterCanBari()
     {
@@ -93,6 +117,11 @@ public class DusmanCanSistemi : MonoBehaviour
 
         // Olunce can barini hemen gizle ve zamanlayicilari durdur
         if (hideTimer != null) StopCoroutine(hideTimer);
+        
+        // --- 4. GÜNCELLENDİ (Yeni Coroutine'i de durdur) ---
+        if (hasarCoroutine != null) StopCoroutine(hasarCoroutine);
+        // --------------------------------------------------
+
         StopCoroutine("YanmaDongusu"); // YANMA EFEKTİNİ DE DURDUR (ÖNEMLİ)
         if (canBariParent != null) canBariParent.SetActive(false);
 
@@ -102,29 +131,22 @@ public class DusmanCanSistemi : MonoBehaviour
             dusmanAIScripti.OlumAnimasyonunuBaslat();
         }
 
-        // --- YENİ EKLENDİ (ROUND SİSTEMİ İÇİN) ---
         // "Ben öldüm!" diye spawner'a haber yolla
         OnDusmanOldu?.Invoke();
-        // ------------------------------------------
-
+        
         // Dusman objesini 5 saniye sonra yok et (animasyonun bitmesi icin)
         Destroy(gameObject, 5f);
     }
 
-    // --- ATEŞ TOPU İÇİN OLAN KISIM (DOKUNULMADI) ---
+    // --- ATEŞ TOPU İÇİN OLAN KISIM (DEĞİŞMEDİ) ---
 
-    // Dışarıdan (Top'tan) çağrılan fonksiyon
     public void YanmaBaslat(float saniyeBasiHasar, int kacSaniyeSurucek)
     {
         if (mevcutCan <= 0) return; // Ölü düşman yanmaz
-
-        // Üst üste yanmasın diye önce eskisi varsa durduruyoruz
         StopCoroutine("YanmaDongusu");
-        // Yeni yanmayı başlatıyoruz
         StartCoroutine(YanmaDongusu(saniyeBasiHasar, kacSaniyeSurucek));
     }
 
-    // Saniye saniye can azaltan zamanlayıcı
     IEnumerator YanmaDongusu(float hasar, int sure)
     {
         for (int i = 0; i < sure; i++)
@@ -138,7 +160,6 @@ public class DusmanCanSistemi : MonoBehaviour
             }
             else
             {
-                // Düşman bu 1 saniye içinde öldüyse döngüden çık
                 break;
             }
         }

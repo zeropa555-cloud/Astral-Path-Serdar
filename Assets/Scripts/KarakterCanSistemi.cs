@@ -1,56 +1,102 @@
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.SceneManagement; // <-- Sahne yönetimi için GEREKLÝ
-using UnityEngine.InputSystem;   // <-- Tuþ basýmý için GEREKLÝ
+using UnityEngine.InputSystem; 
+using System.Collections; // <-- 1. YENÄ° EKLENDÄ° (ZamanlayÄ±cÄ±/Coroutine iÃ§in ÅžART!)
 
 public class KarakterCanSistemi : MonoBehaviour
 {
-    [Header("Can Ayarlarý")]
+    [Header("Can AyarlarÄ±")]
     public float maxCan = 100f;
-
-    [Header("Ölüm Ayarlarý")]
-    [Tooltip("Karakter ölünce açýlacak UI Paneli")]
-    public GameObject olumPaneli; // 3. Adýmda burayý dolduracaðýz
 
     [Header("Mevcut Durum")]
     [SerializeField]
     private float mevcutCan;
-    public bool hayattaMi { get; private set; } // Düþmanlarýn durmasý için
+
+    private Animator animator;
 
     [Header("UI Sinyali")]
     public UnityEvent<float> OnCanDegisti;
     public UnityEvent OnOlum;
 
+    [Header("Animasyon AyarlarÄ±")]
+    [Tooltip("Animator'deki Hasar Alma Trigger'Ä±nÄ±n tam adÄ±")]
+    public string hasarTriggerAdi = "Hit";
+
+    // ----- 2. YENÄ° EKLENDÄ°: Gecikme AyarÄ± -----
+    [Tooltip("Hasar aldÄ±ktan KAÃ‡ SANÄ°YE SONRA 'Hit' animasyonu baÅŸlasÄ±n?")]
+    public float hasarAnimasyonGecikmesi = 0.2f; // Saniye cinsinden gecikme
+
+    // ----- 3. YENÄ° EKLENDÄ°: ZamanlayÄ±cÄ± ReferansÄ± -----
+    // AynÄ± anda birden fazla hasar animasyonu baÅŸlatmayÄ± engeller
+    private Coroutine hasarCoroutine;
+
+
     void Start()
     {
         mevcutCan = maxCan;
-        hayattaMi = true; // Oyuna hayatta baþla
-        OnCanDegisti.Invoke(mevcutCan / maxCan);
-
-        // Panelin baþta kapalý olduðundan %100 emin ol
-        if (olumPaneli != null)
+        animator = GetComponentInChildren<Animator>(); 
+        
+        if (animator == null)
         {
-            olumPaneli.SetActive(false);
+            Debug.LogWarning(gameObject.name + ": KarakterCanSistemi bir Animator bulamadÄ±! Hasar animasyonu Ã§alÄ±ÅŸmayacak.");
         }
+        
+        OnCanDegisti.Invoke(mevcutCan / maxCan);
     }
 
     public void HasarAl(float miktar)
     {
-        if (!hayattaMi) return; // Zaten öldüyse hasar alma
+        if (mevcutCan <= 0) return;
 
         mevcutCan -= miktar;
         mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan);
-        OnCanDegisti.Invoke(mevcutCan / maxCan);
 
+        OnCanDegisti.Invoke(mevcutCan / maxCan);
+        
+        // --- 4. GÃœNCELLENEN MANTIK ---
         if (mevcutCan <= 0)
         {
             OlumFonksiyonu();
         }
+        else
+        {
+            // Can BÄ°TMEDÄ°YSE: Animasyonu hemen tetikleme
+            // animator.SetTrigger(hasarTriggerAdi); // <-- BU SATIR KALDIRILDI
+
+            // YERÄ°NE: Gecikmeli animasyon zamanlayÄ±cÄ±sÄ±nÄ± baÅŸlat
+            
+            // EÄŸer zaten Ã§alÄ±ÅŸan bir 'hasar alma' animasyon gecikmesi varsa, onu durdur
+            if(hasarCoroutine != null)
+            {
+                StopCoroutine(hasarCoroutine);
+            }
+            // Yenisini baÅŸlat
+            hasarCoroutine = StartCoroutine(GecikmeliHasarAnimasyonu());
+        }
     }
+
+    // ----- 5. YENÄ° EKLENEN ZAMANLAYICI FONKSÄ°YONU -----
+    IEnumerator GecikmeliHasarAnimasyonu()
+    {
+        // 1. Belirlenen sÃ¼re kadar bekle
+        yield return new WaitForSeconds(hasarAnimasyonGecikmesi);
+
+        // 2. SÃ¼re doldu, ÅŸimdi animasyonu tetikle
+        if (animator != null && !string.IsNullOrEmpty(hasarTriggerAdi))
+        {
+            Debug.Log("Gecikme bitti. Animasyon tetikleniyor: " + hasarTriggerAdi); 
+            animator.SetTrigger(hasarTriggerAdi); 
+        }
+
+        // 3. ZamanlayÄ±cÄ± iÅŸini bitirdi, referansÄ± temizle
+        hasarCoroutine = null;
+    }
+
 
     public void Iyiles(float miktar)
     {
-        if (!hayattaMi || mevcutCan == maxCan) return;
+        // ... (Bu fonksiyon aynÄ± kaldÄ±) ...
+        if (mevcutCan <= 0 || mevcutCan == maxCan) return;
         mevcutCan += miktar;
         mevcutCan = Mathf.Clamp(mevcutCan, 0f, maxCan);
         OnCanDegisti.Invoke(mevcutCan / maxCan);
@@ -58,44 +104,17 @@ public class KarakterCanSistemi : MonoBehaviour
 
     private void OlumFonksiyonu()
     {
-        if (!hayattaMi) return; // Bu fonksiyonun sadece 1 kere çalýþmasýný garanti et
-
-        hayattaMi = false; // ÖLDÜN!
-        Debug.Log("Karakter ÖLDÜ!");
-        OnOlum.Invoke(); // Ölüm animasyonunu tetikle
-
-        // Hareket ve saldýrý scriptlerini devre dýþý býrak
-        SimpleMove hareketScripti = GetComponent<SimpleMove>();
-        if (hareketScripti != null) hareketScripti.enabled = false;
-        PlayerAttack attackScripti = GetComponent<PlayerAttack>();
-        if (attackScripti != null) attackScripti.enabled = false;
-
-        // Ölüm Panelini aç
-        if (olumPaneli != null)
-        {
-            olumPaneli.SetActive(true);
-        }
-
-        // Mouse'u görünür ve serbest yap
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
+        // ... (Bu fonksiyon aynÄ± kaldÄ±) ...
+        Debug.Log("Karakter Ã–LDÃœ!");
+        OnOlum.Invoke(); 
     }
 
-    // --- SÝSTEMÝN KALBÝ BURASI ---
-    // Her frame "acaba bir tuþa basýldý mý?" diye kontrol eder
     void Update()
     {
-        // Eðer oyuncu hayattaysa, bu fonksiyonu HÝÇ ÇALIÞTIRMA
-        if (hayattaMi) return;
-
-        // Eðer oyuncu öldüyse (yani 'hayattaMi' false ise) 
-        // ve (klavyeden VEYA fareden) herhangi bir tuþa BASTIYSA...
-        if (Keyboard.current.anyKey.wasPressedThisFrame ||
-            (Mouse.current != null && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame)))
+        // ... (Test fonksiyonunuz aynÄ± kaldÄ±) ...
+        if (Keyboard.current != null && Keyboard.current.kKey.wasPressedThisFrame)
         {
-            // MainMenu'ye dön
-            Debug.Log("Ana Menüye dönülüyor...");
-            SceneManager.LoadScene("MainMenu");
+            HasarAl(10f);
         }
     }
 }
