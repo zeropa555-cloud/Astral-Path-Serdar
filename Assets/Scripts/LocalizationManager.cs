@@ -46,15 +46,15 @@ public class LocalizationManager : MonoBehaviour
 
         // Buraya oyunundaki tum metinleri ekleyeceksin
         // ORNEK:
-        AddText("key_basla_buton", "BA�LA", "START");
+        AddText("key_basla_buton", "BASLA", "START");
         AddText("key_ayarlar_buton", "AYARLAR", "SETTINGS");
-        AddText("key_cikis_buton", "�IKI�", "EXIT");
-        AddText("key_geri_buton", "GER�", "BACK");
+        AddText("key_cikis_buton", "CIKIS", "EXIT");
+        AddText("key_geri_buton", "GERI", "BACK");
         AddText("key_ses_ayarlari", "SES AYARLARI", "SOUND SETTINGS");
-        AddText("key_dil_secimi", "D�L SE��M�", "LANGUAGE");
+        AddText("key_dil_secimi", "DIL SECIMI", "LANGUAGE");
         AddText("key_ana_ses", "ANA SES", "MASTER");
-        AddText("key_muzik", "M�Z�K", "MUSIC");
-        AddText("key_efektler", "SES EFEKTLER�", "SFX");
+        AddText("key_muzik", "MUZIK", "MUSIC");
+        AddText("key_efektler", "SES EFEKTLERI", "SFX");
         AddText("key_ayarlar_isim", "Ayarlar", "Settings");
 
         // Buraya istedigin kadar ekleyebilirsin
@@ -94,6 +94,7 @@ public class LocalizationManager : MonoBehaviour
     }
 
     // O an ekranda gorunen tum metinleri guncelle
+    [System.Obsolete]
     public void UpdateAllTexts()
     {
         // Ekranda "LocalizedText" script'ine sahip tum objeleri bul

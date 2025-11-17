@@ -8,43 +8,41 @@ public class DusmanAI : MonoBehaviour
     [Header("Referanslar")]
     private NavMeshAgent agent;
     private Animator animator;
-    [Tooltip("Düşmanın kovalayacağı ve saldıracağı oyuncu")]
-    public Transform player;
+    public Transform player; // Player'ı otomatik bulur ama Inspector'dan da bakabilirsin
 
-    [Header("Devriye Ayarları")]
+    [Header("Ayarlar")]
     public float devriyeYaricapi = 20f;
-    // Not: Bu, sizin "duraksız devriye" kodunuzdur.
-
-    [Header("Takip & Saldırı Ayarları")]
     public float gorusMesafesi = 15f;
-    public float gorusAcisi = 90f;
     public float saldiriMesafesi = 2f;
     public float saldiriCooldown = 1.5f;
     public float saldiriHasari = 10f;
 
     [Header("Animasyon Ayarları")]
-    [Tooltip("Animator'deki Hasar Alma Trigger'ının tam adı (örn: Hit)")]
     public string hasarTriggerAdi = "Hit";
+    public float hasarAnimasyonSuresi = 0.5f; // Düşman hasar alınca kaç sn dursun?
 
-    private enum Durum { Devriye, Takip, Saldiri }
-    private Durum mevcutDurum;
     private bool hayatta = true;
     private float sonSaldiriZamani = -99f;
-
-    [Header("Optimizasyon")]
     public LayerMask gorusLayerMask;
+    private KarakterCanSistemi oyuncuCanSistemi;
 
+    // --- YENİ EKLENEN: Hasar Kilidi ---
+    private bool hasarAnimasyonunda = false;
 
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+
+        // Player'ı bulma (Otomatik)
         if (player == null)
         {
             try { player = GameObject.FindGameObjectWithTag("Player").transform; }
-            catch (System.Exception) { Debug.LogError("SAHİP: Oyuncu bulunamadı."); hayatta = false; }
+            catch { hayatta = false; }
         }
-        mevcutDurum = Durum.Devriye;
+
+        if (player != null) oyuncuCanSistemi = player.GetComponent<KarakterCanSistemi>();
+
         YeniHedefBul();
     }
 
@@ -52,123 +50,106 @@ public class DusmanAI : MonoBehaviour
     {
         if (!hayatta || player == null) return;
 
-        switch (mevcutDurum)
-        {
-            case Durum.Devriye: DevriyeDavranisi(); break;
-            case Durum.Takip: TakipDavranisi(); break;
-            case Durum.Saldiri: SaldiriDavranisi(); break;
-        }
+        // Eğer hasar animasyonu oynuyorsa (donduysa) hiçbir şey yapma
+        if (hasarAnimasyonunda) return;
 
-        animator.SetFloat("Speed", agent.velocity.magnitude);
-    }
-
-    void DevriyeDavranisi()
-    {
-        if (OyuncuyuGorebiliyorMu())
+        // Oyuncu öldüyse dur
+        if (oyuncuCanSistemi != null && !oyuncuCanSistemi.hayattaMi)
         {
-            mevcutDurum = Durum.Takip;
-            agent.isStopped = false;
+            agent.isStopped = true;
+            animator.SetFloat("Speed", 0f);
             return;
         }
 
-        if (!agent.pathPending && agent.remainingDistance < agent.stoppingDistance)
-        {
-            YeniHedefBul();
-        }
-    }
-
-    void TakipDavranisi()
-    {
-        if (!OyuncuyuGorebiliyorMu())
-        {
-            mevcutDurum = Durum.Devriye;
-            return;
-        }
-
-        agent.SetDestination(player.position);
+        // Basit Takip Mantığı (Önceki karmaşık State Machine yerine en garantisi)
         float mesafe = Vector3.Distance(transform.position, player.position);
 
+        // 1. Saldırı Mesafesindeyse -> SALDIR
         if (mesafe <= saldiriMesafesi)
         {
-            mevcutDurum = Durum.Saldiri;
             agent.isStopped = true;
+            animator.SetFloat("Speed", 0f);
+            SaldiriDavranisi();
+        }
+        // 2. Görüş Mesafesindeyse -> KOVALA
+        else if (mesafe <= gorusMesafesi)
+        {
+            agent.isStopped = false;
+            agent.SetDestination(player.position);
+            animator.SetFloat("Speed", agent.velocity.magnitude);
+        }
+        // 3. Uzaktaysa -> DEVRİYE (veya bekle)
+        else
+        {
+            if (!agent.pathPending && agent.remainingDistance < agent.stoppingDistance)
+            {
+                YeniHedefBul();
+            }
+            animator.SetFloat("Speed", agent.velocity.magnitude);
         }
     }
 
     void SaldiriDavranisi()
     {
-        agent.isStopped = true;
-
-        if (!OyuncuyuGorebiliyorMu())
-        {
-            mevcutDurum = Durum.Devriye;
-            agent.isStopped = false;
-            return;
-        }
-
-        float mesafe = Vector3.Distance(transform.position, player.position);
-        
-        if (mesafe > saldiriMesafesi)
-        {
-            mevcutDurum = Durum.Takip;
-            agent.isStopped = false;
-            return;
-        }
-
+        // Oyuncuya dön
         Vector3 bakisYonu = (player.position - transform.position).normalized;
-        Quaternion bakisRotasyonu = Quaternion.LookRotation(new Vector3(bakisYonu.x, 0, bakisYonu.z));
-        transform.rotation = Quaternion.Slerp(transform.rotation, bakisRotasyonu, Time.deltaTime * 5f);
+        if (bakisYonu != Vector3.zero)
+        {
+            Quaternion rot = Quaternion.LookRotation(new Vector3(bakisYonu.x, 0, bakisYonu.z));
+            transform.rotation = Quaternion.Slerp(transform.rotation, rot, Time.deltaTime * 5f);
+        }
 
         if (Time.time > sonSaldiriZamani + saldiriCooldown)
         {
             animator.SetTrigger("Attack");
             sonSaldiriZamani = Time.time;
+            if (oyuncuCanSistemi != null) oyuncuCanSistemi.HasarAl(saldiriHasari);
+        }
+    }
 
-            KarakterCanSistemi oyuncuCan = player.GetComponent<KarakterCanSistemi>();
-            if (oyuncuCan != null)
+    void YeniHedefBul()
+    {
+        Vector3 randomPoint = transform.position + Random.insideUnitSphere * devriyeYaricapi;
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(randomPoint, out hit, 10f, NavMesh.AllAreas))
+        {
+            agent.SetDestination(hit.position);
+        }
+    }
+
+    // --- ÖNEMLİ: CAN SİSTEMİNDEN ÇAĞRILAN FONKSİYON ---
+    public void HasarAnimasyonunuBaslat()
+    {
+        if (hayatta)
+        {
+            // Eğer zaten "Ah!" diyorsa tekrar başlatma (titremesin)
+            if (!hasarAnimasyonunda)
             {
-                oyuncuCan.HasarAl(saldiriHasari);
+                StartCoroutine(HasarAlVeDur());
             }
         }
     }
 
-    // ----- HATA DÜZELTMESİ BURADA -----
-    bool OyuncuyuGorebiliyorMu()
+    System.Collections.IEnumerator HasarAlVeDur()
     {
-        if (player == null) return false;
+        hasarAnimasyonunda = true; // Kilidi aç
 
-        float mesafe = Vector3.Distance(transform.position, player.position);
-        if (mesafe > gorusMesafesi) return false;
+        // 1. Dur
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
 
-        Vector3 yonToPlayer = (player.position - transform.position).normalized;
-        float aci = Vector3.Angle(transform.forward, yonToPlayer);
-        if (aci > gorusAcisi / 2) return false;
+        // 2. Animasyonu Oynat
+        animator.SetTrigger(hasarTriggerAdi);
 
-        // 1. 'hit' değişkenini burada tanımla
-        RaycastHit hit; 
-        // 2. 'gozHasi' değil, 'gozHizasi' olarak düzeltildi
-        Vector3 gozHizasi = transform.position + Vector3.up * 1.5f; 
-        
-        // 3. 'out' kelimesi eklendi
-        if (Physics.Raycast(gozHizasi, yonToPlayer, out hit, gorusMesafesi, gorusLayerMask))
+        // 3. Bekle (Animasyon süresi kadar)
+        yield return new WaitForSeconds(hasarAnimasyonSuresi);
+
+        // 4. Devam Et
+        if (hayatta)
         {
-            if (hit.transform == player) return true;
+            agent.isStopped = false;
+            hasarAnimasyonunda = false; // Kilidi kapat
         }
-
-        return false;
-    }
-    // ---------------------------------
-
-    void YeniHedefBul()
-    {
-        Vector3 rastgeleYon = Random.insideUnitSphere * devriyeYaricapi;
-        rastgeleYon += transform.position;
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(rastgeleYon, out hit, devriyeYaricapi, NavMesh.AllAreas))
-        {
-            agent.SetDestination(hit.position);
-        }
-        else { Debug.LogWarning(gameObject.name + " NavMesh üzerinde yeni bir hedef bulamadı!"); }
     }
 
     public void OlumAnimasyonunuBaslat()
@@ -176,18 +157,8 @@ public class DusmanAI : MonoBehaviour
         if (!hayatta) return;
         hayatta = false;
         agent.isStopped = true;
-        agent.velocity = Vector3.zero;
+        agent.enabled = false; // Agent'ı kapat
         animator.SetTrigger("Die");
-        this.enabled = false;
-    }
-
-    public void HasarAnimasyonunuBaslat()
-    {
-        if (!hayatta || animator == null) return;
-        
-        if (!string.IsNullOrEmpty(hasarTriggerAdi))
-        {
-            animator.SetTrigger(hasarTriggerAdi);
-        }
+        this.enabled = false; // Scripti kapat
     }
 }

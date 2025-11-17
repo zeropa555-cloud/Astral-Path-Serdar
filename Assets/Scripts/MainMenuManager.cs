@@ -29,7 +29,7 @@ public class MainMenuManager : MonoBehaviour
     public void OyunBaslat()
     {
         Debug.Log("Oyun Sahnesi Yukleniyor...");
-        SceneManager.LoadScene("GameScene");
+        SceneManager.LoadScene("IntroScene");
     }
 
     public void OyundanCik()
